@@ -1,12 +1,14 @@
 {
   "name": "chatnote",
-  "version": "0.22.1",
+  "version": "0.22.4",
   "private": true,
   "scripts": {
     "test": "node tests/naming.cjs && node tests/integration.cjs",
-    "check": "node --check content.js && node --check naming.js && node --check background.js"
+    "check": "node --check content.js && node --check naming.js && node --check background.js",
+    "test:browser": "node tests/browser-capture.cjs"
   },
   "devDependencies": {
-    "jsdom": "^26.1.0"
+    "jsdom": "^26.1.0",
+    "playwright": "^1.62.1"
   }
 }

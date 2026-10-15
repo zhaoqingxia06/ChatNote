@@ -554,42 +554,85 @@
       preventScroll: true
     });
   });
+  const messageSelector = '[data-message-author-role="assistant"],[data-message-author-role="user"],main article,[data-testid^="conversation-turn-"]';
   function messageBody(node) {
     const el = node?.nodeType === 3 ? node.parentElement : node;
-    if (!el || el.getRootNode() === root || el.closest('textarea,input,[contenteditable="true"],nav,header,aside,button,[role="button"]')) return null;
-    return el.closest('[data-message-author-role="assistant"],[data-message-author-role="user"]');
+    if (!el || el.getRootNode() === root || el.closest('textarea,input,[contenteditable="true"],nav,header,button,[role="button"]')) return null;
+    return el.closest(messageSelector);
   }
   function eligible(node) {
     return ready && key.startsWith('article:conversation:') && !!messageBody(node);
   }
   function show(html, x, y) {
     pending = clean(html);
+    if (!pending.trim()) return;
     pendingKey = getKey();
     $('capture').hidden = false;
     $('capture').style.left = Math.max(8, Math.min(x, innerWidth - 140)) + 'px';
     $('capture').style.top = Math.max(8, Math.min(y, innerHeight - 45)) + 'px';
   }
-  document.addEventListener('mouseup', () => setTimeout(() => {
+  function captureSelection() {
+    if (!ready || getKey() !== key) return;
     const s = window.getSelection();
     if (!s?.rangeCount || s.isCollapsed) {
+      if (document.activeElement === host) return;
       selected = false;
       $('capture').hidden = true;
       pending = '';
       return;
     }
     const r = s.getRangeAt(0);
-    if (!eligible(r.startContainer) || !eligible(r.endContainer) || messageBody(r.startContainer) !== messageBody(r.endContainer)) {
+    if (root.contains(r.startContainer) || root.contains(r.endContainer)) return;
+    const common = r.commonAncestorContainer.nodeType === 3 ? r.commonAncestorContainer.parentElement : r.commonAncestorContainer;
+    if (common.closest?.('button,[role="button"],textarea,input,[contenteditable="true"],nav,header,aside,[role="navigation"]')) {
+      $('capture').hidden = true;
+      pending = '';
+      selected = false;
+      return;
+    }
+    const content = document.createElement('div');
+    // Clip to messages: browser selections can end on a message's parent.
+    const messages = [...document.querySelectorAll(messageSelector)];
+    const leaves = messages.filter(m => !m.querySelector(messageSelector));
+    for (const message of leaves) {
+      if (!r.intersectsNode(message)) continue;
+      const part = document.createRange();
+      part.selectNodeContents(message);
+      if (r.compareBoundaryPoints(Range.START_TO_START, part) > 0) part.setStart(r.startContainer, r.startOffset);
+      if (r.compareBoundaryPoints(Range.END_TO_END, part) < 0) part.setEnd(r.endContainer, r.endOffset);
+      if (part.collapsed || !part.toString().trim()) continue;
+      const fragment = part.cloneContents();
+      fragment.querySelectorAll('button,[role="button"],textarea,input:not([type="checkbox"]),[contenteditable="true"],nav,header,script,style').forEach(el => el.remove());
+      const block = document.createElement('div');
+      block.append(fragment);
+      if (block.textContent.trim() || block.querySelector('img,table')) content.append(block);
+    }
+    // Work and alternate chat views may expose no message role/article nodes.
+    // In that case capture the user's explicit selection, excluding UI controls.
+    if (!messages.length) {
+      content.append(r.cloneContents());
+      content.querySelectorAll('button,[role="button"],textarea,input:not([type="checkbox"]),[contenteditable="true"],nav,header,aside,[role="navigation"],script,style').forEach(el => el.remove());
+    }
+    if (!content.textContent.trim() && !content.querySelector('img,table')) {
       $('capture').hidden = true;
       pending = '';
       selected = false;
       return;
     }
     selected = true;
-    const t = document.createElement('div');
-    t.append(r.cloneContents());
     const box = r.getBoundingClientRect();
-    show(t.innerHTML, box.right, box.bottom + 8);
-  }, 0));
+    show(content.innerHTML, box.right, box.bottom + 8);
+  }
+  let captureTimer;
+  function scheduleCapture(e) {
+    if (e?.composedPath().includes(host)) return;
+    clearTimeout(captureTimer);
+    captureTimer = setTimeout(captureSelection, 0);
+  }
+  document.addEventListener('pointerup', scheduleCapture, true);
+  document.addEventListener('mouseup', scheduleCapture, true);
+  document.addEventListener('keyup', scheduleCapture, true);
+  document.addEventListener('selectionchange', scheduleCapture);
   document.addEventListener('mouseover', e => {
     if (selected) return;
     const el = e.target.closest?.('table,img,video');
@@ -601,7 +644,8 @@
   });
   $('capture').onmousedown = e => e.preventDefault();
   $('capture').onclick = () => {
-    if (pendingKey === key) insert(pending);
+    clearTimeout(captureTimer);
+    if (pending && pendingKey === key && getKey() === key) insert(pending);
   };
   document.addEventListener('scroll', e => {
     if (e.composedPath().includes(host)) return;

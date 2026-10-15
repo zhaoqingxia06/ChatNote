@@ -32,8 +32,23 @@ set('<p>检查内容</p>',2);command('检查列表');assert(ed.querySelector('li
 set('<p>引用内容</p>',2);command('引用');assert.equal(ed.querySelector('blockquote').textContent,'引用内容');
 set('<p>高亮内容</p>',2);command('高亮块');assert.equal(ed.querySelector('blockquote.highlight-block').textContent,'高亮内容');await wait(350);assert(data['article:conversation:A'].md.includes('> [!note]'));assert(data['article:conversation:A'].html.includes('highlight-block'));
 const article=w.document.querySelector('article');article.setAttribute('data-message-author-role','assistant');const external=w.document.createRange();external.selectNodeContents(w.document.getElementById('text'));w.getSelection=()=>({rangeCount:1,isCollapsed:false,getRangeAt:()=>external,toString:()=>external.toString()});w.document.dispatchEvent(new w.MouseEvent('mouseup'));await wait(20);assert(!$('capture').hidden);
+// ChatGPT may stop bubbling mouseup. Capture must still appear and clicking
+// inside the extension must preserve pending content even after focus collapses it.
+const beforeCapture=ed.innerHTML;
+set('<p>前后</p>',1);
+const source=w.document.getElementById('text');
+source.addEventListener('mouseup',e=>e.stopPropagation());
+source.dispatchEvent(new w.MouseEvent('mouseup',{bubbles:true}));await wait(20);
+assert(!$('capture').hidden);
+const sourceSelection=w.getSelection;
+w.getSelection=()=>({rangeCount:0,isCollapsed:true,toString:()=>''});
+$('capture').dispatchEvent(new w.MouseEvent('mouseup',{bubbles:true,composed:true}));await wait(20);
+assert(!$('capture').hidden);$('capture').click();
+assert.equal(ed.textContent,'前有效素材后');assert($('capture').hidden);
+w.getSelection=sourceSelection;
+ed.innerHTML=beforeCapture;ed.dispatchEvent(new w.Event('input'));await wait(350);
 const other=w.document.createElement('div');other.textContent='页面标题';w.document.body.append(other);external.selectNodeContents(other);w.document.dispatchEvent(new w.MouseEvent('mouseup'));await wait(20);assert($('capture').hidden);
-external.setStart(w.document.getElementById('text').firstChild,0);external.setEnd(other.firstChild,2);w.document.dispatchEvent(new w.MouseEvent('mouseup'));await wait(20);assert($('capture').hidden);
+external.setStart(w.document.getElementById('text').firstChild,0);external.setEnd(other.firstChild,2);w.document.dispatchEvent(new w.MouseEvent('mouseup'));await wait(20);assert(!$('capture').hidden);
 w.history.pushState({},'', '/');await wait(650);assert($('panel').hidden);assert($('toggle').hidden);assert.equal(w.document.getElementById('cg-notes-layout').textContent,'');assert.equal(ed.contentEditable,'false');assert($('filename').disabled);assert($('obsidian').disabled);assert.equal(ed.innerHTML,'');assert(!Object.keys(data).some(k=>k.startsWith('article:draft:')));
 w.history.pushState({},'', '/c/A');await wait(650);assert.equal(ed.contentEditable,'true');assert(!$('toggle').hidden);assert(ed.querySelector('.highlight-block'));
 
