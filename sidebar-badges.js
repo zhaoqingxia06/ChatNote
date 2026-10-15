@@ -15,7 +15,7 @@
     try {
       const url = new URL(href, location.href);
       if (url.origin !== location.origin) return null;
-      return url.pathname.match(new RegExp('^/c/([^/]+)/??.[1] || null;
+      return url.pathname.split('/').length >= 3 && url.pathname.split('/')[1] === 'c' ? url.pathname.split('/')[2] : null;
     } catch { return null; }
   };
   const style = document.createElement('style');
