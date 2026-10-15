@@ -1,0 +1,12 @@
+{
+  "name": "chatnote",
+  "version": "0.22.1",
+  "private": true,
+  "scripts": {
+    "test": "node tests/naming.cjs && node tests/integration.cjs",
+    "check": "node --check content.js && node --check naming.js && node --check background.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "ChatNote",
+  "version": "0.22.1",
+  "description": "ChatNote：对话摘录与 Markdown 编辑，原生文件夹保存。",
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": [
+        "naming.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

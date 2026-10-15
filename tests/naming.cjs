@@ -1,0 +1,10 @@
+const assert=require('assert');require('../naming.js');const name=ChatNoteNaming.summarize;
+assert.equal(name(['请帮我设计声音识别方案']),'声音识别方案');
+assert.equal(name(['旧话题是声音识别','请调研手语产品','整理手语产品报告']),'手语产品调研');
+assert.equal(name(['文档名称应该怎么命名','修改文档命名规则']),'文档命名优化');
+assert.equal(name(['好的','继续']),'未命名文档');
+assert.equal(name([]),'未命名文档');
+assert.equal(name(['请研究火星地貌']),'火星调研');
+for(const input of [['请调研产品'],['声音识别有哪些需求'],['请修改保存位置'],['请整理简历']])assert(Array.from(name(input)).length<=8);
+const fs=require('fs');const source=fs.readFileSync(require('path').join(__dirname,'../content.js'),'utf8');const fn=source.slice(source.indexOf('function conversationName()'),source.indexOf('function fitFileName'));assert(!fn.includes('document.title'));assert(!fn.includes('nav'));assert(fn.includes('slice(-2)'));
+console.log('PASS naming: first turn, latest two turns only, unrelated old topic excluded, short acknowledgments deferred, generic topic, <=8 chars, no page/sidebar titles.');
