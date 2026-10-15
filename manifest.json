@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatNote",
-  "version": "0.22.4",
+  "version": "0.23.0",
   "description": "ChatNote：对话摘录与 Markdown 编辑，原生文件夹保存。",
   "permissions": [
     "storage"
@@ -14,7 +14,8 @@
       ],
       "js": [
         "naming.js",
-        "content.js"
+        "content.js",
+        "sidebar-badges.js"
       ],
       "run_at": "document_idle"
     }
