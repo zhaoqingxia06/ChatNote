@@ -1,6 +1,6 @@
 {
   "name": "chatnote",
-  "version": "0.22.4",
+  "version": "0.24.0",
   "private": true,
   "scripts": {
     "test": "node tests/naming.cjs && node tests/integration.cjs",
