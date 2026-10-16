@@ -1251,7 +1251,19 @@
       }
       const savedSnapshot = snapshot();
       const savedName = doc.fileName;
-      const file = await target.getFileHandle(savedName + '.md', {
+      // Keep the file previously assigned to this chat. Never overwrite another chat's file.
+      let outputName = doc.savedFileName && doc.savedFolderName === target.name
+        ? doc.savedFileName : savedName + '.md';
+      if (!doc.savedFileName || doc.savedFolderName !== target.name) {
+        const shortId = savingKey.slice('article:conversation:'.length).replace(/[^a-zA-Z0-9-]/g, '').slice(0, 8);
+        try {
+          await target.getFileHandle(outputName);
+          outputName = savedName + '-' + shortId + '.md';
+        } catch (e) {
+          if (e.name !== 'NotFoundError') throw e;
+        }
+      }
+      const file = await target.getFileHandle(outputName, {
         create: true
       });
       const writer = await file.createWritable();
@@ -1267,12 +1279,12 @@
       const result = await message({
         type: 'nativeSaved',
         key: savingKey,
-        savedFileName: savedName + '.md',
+        savedFileName: outputName,
         savedFolderName: target.name
       });
       if (key === savingKey && doc) {
         doc.lastSaved = result.savedAt || Date.now();
-        doc.savedFileName = savedName + '.md';
+        doc.savedFileName = outputName;
         doc.savedFolderName = target.name;
         updateSaveLocation();
         status('保存成功');
