@@ -633,13 +633,17 @@
   document.addEventListener('mouseup', scheduleCapture, true);
   document.addEventListener('keyup', scheduleCapture, true);
   document.addEventListener('selectionchange', scheduleCapture);
+  // Hover captures a complete semantic block; explicit text selections always win.
+  const blockSelector = 'table,pre,blockquote,ul,ol,img,video';
   document.addEventListener('mouseover', e => {
-    if (selected) return;
-    const el = e.target.closest?.('table,img,video');
+    if (selected || window.getSelection()?.toString().trim()) return;
+    const el = e.target.closest?.(blockSelector);
     if (!el || !eligible(el)) return;
-    let html = el.outerHTML;
-    if (el.tagName === 'VIDEO') html = '<p><a href="' + esc(safeURL(el.currentSrc || el.src) || location.href) + '">视频链接</a></p>';
-    const b = el.getBoundingClientRect();
+    // Nested lists belong to their outer list, not a truncated inner fragment.
+    const block = el.closest('ul,ol')?.parentElement?.closest('ul,ol') || el;
+    let html = block.outerHTML;
+    if (block.tagName === 'VIDEO') html = '<p><a href="' + esc(safeURL(block.currentSrc || block.src) || location.href) + '">视频链接</a></p>';
+    const b = block.getBoundingClientRect();
     show(html, b.right - 130, b.top + 8);
   });
   $('capture').onmousedown = e => e.preventDefault();
