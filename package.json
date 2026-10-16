@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "test": "node tests/naming.cjs && node tests/integration.cjs",
-    "check": "node --check content.js && node --check naming.js && node --check background.js",
-    "test:browser": "node tests/browser-capture.cjs"
+    "check": "node --check content.js && node --check naming.js && node --check background.js && node --check sidebar-badges.js",
+    "test:browser": "node tests/browser-capture.cjs && node tests/v024.cjs"
   },
   "devDependencies": {
     "jsdom": "^26.1.0",

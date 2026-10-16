@@ -636,15 +636,24 @@
   // Hover captures a complete semantic block; explicit text selections always win.
   const blockSelector = 'table,pre,blockquote,ul,ol,img,video';
   document.addEventListener('mouseover', e => {
+    if (e.composedPath().includes(host)) return;
     if (selected || window.getSelection()?.toString().trim()) return;
     const el = e.target.closest?.(blockSelector);
-    if (!el || !eligible(el)) return;
+    if (!el || !eligible(el)) {
+      $('capture').hidden = true;
+      pending = '';
+      return;
+    }
     // Nested lists belong to their outer list, not a truncated inner fragment.
-    const block = el.closest('ul,ol')?.parentElement?.closest('ul,ol') || el;
+    let block = el;
+    // Capture the outer semantic block, including a list nested in a quote.
+    while (block.parentElement?.closest(blockSelector) && messageBody(block.parentElement.closest(blockSelector)) === messageBody(el)) {
+      block = block.parentElement.closest(blockSelector);
+    }
     let html = block.outerHTML;
     if (block.tagName === 'VIDEO') html = '<p><a href="' + esc(safeURL(block.currentSrc || block.src) || location.href) + '">视频链接</a></p>';
     const b = block.getBoundingClientRect();
-    show(html, b.right - 130, b.top + 8);
+    show(html, b.right + 8, b.top + 8);
   });
   $('capture').onmousedown = e => e.preventDefault();
   $('capture').onclick = () => {
@@ -1295,7 +1304,7 @@
       nativeSaving = false;
     }
   }
-  $('obsidian').onclick = () => saveNative(true);
+  $('obsidian').onclick = () => saveNative();
   $('changeFolder').onclick = () => {
     closeSaveLocation();
     saveNative(true);

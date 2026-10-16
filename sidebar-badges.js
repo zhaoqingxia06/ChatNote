@@ -15,7 +15,7 @@
     try {
       const url = new URL(href, location.href);
       if (url.origin !== location.origin) return null;
-      return url.pathname.split('/').length >= 3 && url.pathname.split('/')[1] === 'c' ? url.pathname.split('/')[2] : null;
+      return url.pathname.match(/\/c\/([^/]+)(?:\/|$)/)?.[1] || null;
     } catch { return null; }
   };
   const style = document.createElement('style');
@@ -34,7 +34,7 @@
     scheduled = false;
     // Link semantics survive most class-name and wrapper changes.
     for (const link of document.querySelectorAll('a[href*="/c/"]')) {
-      if (link.closest('#cg-notes-host')) continue;
+      if (link.closest('#cg-notes-host') || !link.closest('nav,aside,[role="navigation"],#history,[data-testid*="sidebar"]')) continue;
       const id = idFromHref(link.getAttribute('href'));
       if (!id) continue;
       const existing = link.querySelector('[' + BADGE + ']');
@@ -42,11 +42,12 @@
         existing?.remove();
         continue;
       }
-      if (existing) continue;
+      if (existing) { existing.dataset.conversationId = id; continue; }
       // Don't change ChatGPT's link or title text; inject a small independent element.
       const badge = document.createElement('button');
       badge.type = 'button';
       badge.setAttribute(BADGE, '');
+      badge.dataset.conversationId = id;
       badge.setAttribute('aria-label', '打开 ChatNote 笔记');
       badge.title = '打开 ChatNote 笔记';
       badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>';
@@ -59,8 +60,9 @@
         const openWhenReady = () => {
           const host = document.getElementById('cg-notes-host');
           const toggle = host?.shadowRoot?.getElementById('toggle');
+          const panel = host?.shadowRoot?.getElementById('panel');
           if (location.pathname === target.pathname && toggle && !toggle.hidden) {
-            toggle.click();
+            if (panel?.hidden) toggle.click();
           } else if (attempts++ < 20) {
             setTimeout(openWhenReady, 150);
           }
@@ -95,9 +97,9 @@
     if (changed) schedule();
   });
   const observer = new MutationObserver(mutations => {
-    if (mutations.some(m => m.type === 'childList' &&
+    if (mutations.some(m => m.type === 'attributes' || m.type === 'childList' &&
       [...m.addedNodes, ...m.removedNodes].some(n => n.nodeType === 1 && !n.hasAttribute?.(BADGE)))) schedule();
   });
-  observer.observe(document.documentElement, {childList:true,subtree:true});
+  observer.observe(document.documentElement, {childList:true,subtree:true,attributes:true,attributeFilter:['href']});
   schedule();
 })()
